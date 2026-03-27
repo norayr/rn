@@ -59,7 +59,7 @@ The distribution includes `rn.openrc` and installs with `make install`.
 sudo install -m 755 rn.openrc /etc/init.d/rn
 ```
 
-Install or update it as `/etc/init.d/rn` and enable it:
+Enable it:
 
 ```sh
 sudo rc-update add rn default
