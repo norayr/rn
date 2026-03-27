@@ -190,11 +190,105 @@ Example config:
 [server]
 port=53
 
+; listen_mode can be:
+;   local  -> 127.0.0.1 + ::1 (default)
+;   all    -> 0.0.0.0 + ::
+; listen_mode=local
+; listen_mode=all
+
+; You can also override per-protocol:
+; bind_ipv4=127.0.0.1
+; bind_ipv6=::1
+
 [upstreams]
 dns1=1.1.1.1
 dns2=8.8.8.8
 dns3=[2606:4700:4700::1111]:53
 ```
+
+## Listening behavior
+
+`rn` can listen either only on local interfaces or on all interfaces.
+
+### Default (local only)
+
+If no options are given, `rn` listens on:
+
+* `127.0.0.1` (IPv4)
+* `::1` (IPv6)
+
+Example:
+
+```text
+Listening on 127.0.0.1:53
+Listening on [::1]:53
+```
+
+---
+
+### Listen on all interfaces
+
+Use:
+
+```sh
+./rn 53 1.1.1.1 --listen-all
+```
+
+or in config:
+
+```ini
+listen_mode=all
+```
+
+This binds:
+
+* `0.0.0.0`
+* `::`
+
+---
+
+### Per-address control
+
+You can override bind addresses explicitly:
+
+```ini
+bind_ipv4=127.0.0.1
+bind_ipv6=201:8021:10ah:1337:be0c:dace:cafe:ada0
+```
+
+or from command line:
+
+```sh
+./rn 53 1.1.1.1 --bind4=0.0.0.0 --bind6=::
+```
+
+---
+
+### Behavior when only one is specified
+
+If only one of `bind_ipv4` or `bind_ipv6` is set:
+
+* the other protocol keeps its default value
+
+Example:
+
+```ini
+bind_ipv6=201:8021:...
+```
+
+Result:
+
+* IPv6 -> configured address
+* IPv4 -> still `127.0.0.1`
+
+---
+
+### Security note
+
+Listening on all interfaces (`--listen-all` or `0.0.0.0` / `::`) exposes the DNS service to the network.
+
+The default (`local`) is safer and recommended unless you explicitly want remote access.
+
 
 ## Recommended `/etc/resolv.conf` setup
 
