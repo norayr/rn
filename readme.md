@@ -33,7 +33,57 @@ By default this installs:
 * systemd unit to `/etc/systemd/system/rn.service`
 * OpenRC script to `/etc/init.d/rn`
 
-## Start the server
+## Service files
+
+### systemd
+
+The distribution includes `rn.service`.
+
+Enable and start it with:
+
+```sh
+sudo systemctl daemon-reload
+sudo systemctl enable --now rn.service
+```
+
+Check status:
+
+```sh
+systemctl status rn.service
+```
+
+### OpenRC
+
+The distribution includes `rn.openrc` and installs with `make install`.
+```
+sudo install -m 755 rn.openrc /etc/init.d/rn
+```
+
+Install or update it as `/etc/init.d/rn` and enable it:
+
+```sh
+sudo rc-update add rn default
+sudo rc-service rn start
+```
+
+Check status:
+
+```sh
+rc-service rn status
+```
+
+## Install on Gentoo
+
+Add [norayr-overlay](https://github.com/norayr/norayr-overlay).
+
+```
+emerge --sync norayr-overlay
+emerge net-dns/rn -av
+/etc/init.d/rn start
+```
+
+
+## Otherwise manually start the server
 
 Example:
 
@@ -170,43 +220,6 @@ Example:
 ```
 
 On many Linux systems `/etc/resolv.conf` is managed by system services such as systemd, NetworkManager, or DHCP clients, so manual edits may be overwritten. On FreeBSD it is typically user-editable, but may be overwritten by `dhclient` unless configured otherwise.
-
-## Service files
-
-### systemd
-
-The distribution includes `rn.service`.
-
-Enable and start it with:
-
-```sh
-sudo systemctl daemon-reload
-sudo systemctl enable --now rn.service
-```
-
-Check status:
-
-```sh
-systemctl status rn.service
-```
-
-### OpenRC
-
-The distribution includes `rn.openrc`.
-
-Install or update it as `/etc/init.d/rn` and enable it:
-
-```sh
-sudo install -m 755 rn.openrc /etc/init.d/rn
-sudo rc-update add rn default
-sudo rc-service rn start
-```
-
-Check status:
-
-```sh
-rc-service rn status
-```
 
 ## Notes
 
