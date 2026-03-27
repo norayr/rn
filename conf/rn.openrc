@@ -1,0 +1,14 @@
+#!/sbin/openrc-run
+
+name="rn"
+description="DNS server for .v6.alt"
+
+command="/usr/sbin/rn"
+command_args="-c /etc/rn.conf"
+command_background="yes"
+pidfile="/run/${RC_SVCNAME}.pid"
+
+depend() {
+	need net
+}
+

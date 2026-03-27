@@ -1,0 +1,14 @@
+[Unit]
+Description=rn DNS server for .v6.alt
+After=network.target
+Wants=network.target
+
+[Service]
+Type=simple
+ExecStart=/usr/sbin/rn -c /etc/rn.conf
+Restart=on-failure
+RestartSec=2
+
+[Install]
+WantedBy=multi-user.target
+
