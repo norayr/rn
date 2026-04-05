@@ -2,7 +2,16 @@
 
 A small DNS server for `*.v6.alt` names.
 
-It decodes the rightmost label before `.v6.alt` using the Prosody [mod_s2s_v6mesh](https://modules.prosody.im/mod_s2s_v6mesh.html) scheme and returns an `AAAA` record. For ordinary DNS names, it can forward queries to one or more upstream DNS servers.
+It decodes the rightmost label before `.v6.alt` using the Prosody [mod_s2s_v6mesh](https://modules.prosody.im/mod_s2s_v6mesh.html) scheme and returns an `AAAA` record. For ordinary DNS names, it can forward queries to one or more upstream DNS servers. It can also answer reverse IPv6 `PTR` lookups under `ip6.arpa` by converting the IPv6 address back into a `*.v6.alt` hostname.
+
+## Features
+
+- local synthetic `AAAA` answers for `*.v6.alt`
+- local synthetic `PTR` answers for IPv6 `ip6.arpa`
+- UDP forwarding for other queries
+- multiple IPv4 and IPv6 bind addresses
+- `listen_mode=local|all`
+- file logging, with optional query logging
 
 ## Build
 
@@ -10,7 +19,7 @@ Build with:
 
 ```sh
 make
-````
+```
 
 This runs:
 
@@ -28,10 +37,10 @@ sudo make install
 
 By default this installs:
 
-* `rn` to `/usr/sbin/rn`
-* config to `/etc/rn.conf`
-* systemd unit to `/etc/systemd/system/rn.service`
-* OpenRC script to `/etc/init.d/rn`
+- `rn` to `/usr/sbin/rn`
+- config to `/etc/rn.conf`
+- systemd unit to `/etc/systemd/system/rn.service`
+- OpenRC script to `/etc/init.d/rn`
 
 ## Service files
 
@@ -55,7 +64,8 @@ systemctl status rn.service
 ### OpenRC
 
 The distribution includes `rn.openrc` and installs with `make install`.
-```
+
+```sh
 sudo install -m 755 rn.openrc /etc/init.d/rn
 ```
 
@@ -76,14 +86,13 @@ rc-service rn status
 
 Add [norayr-overlay](https://github.com/norayr/norayr-overlay).
 
-```
+```sh
 emerge --sync norayr-overlay
 emerge net-dns/rn -av
 /etc/init.d/rn start
 ```
 
-
-## Otherwise manually start the server
+## Manual start
 
 Example:
 
@@ -91,7 +100,7 @@ Example:
 ./rn 53 1.1.1.1
 ```
 
-Note, to use ports < 1024 the program needs to be started with root privileges.
+Note: to use ports below 1024, the program needs root privileges.
 
 Expected startup output:
 
@@ -102,7 +111,19 @@ Forwarding non-.v6.alt queries to:
   1.1.1.1:53
 ```
 
-Config-file example:
+Example with all-interface listening:
+
+```sh
+./rn 53 1.1.1.1 8.8.8.8 --listen-all
+```
+
+Example with explicit bind addresses:
+
+```sh
+./rn 53 1.1.1.1 --bind4=127.0.0.1 --bind6=::1 --bind6=200:ffff::1
+```
+
+With `-c`, if no file name is given, `rn` reads `/etc/rn.conf`:
 
 ```sh
 ./rn -c
@@ -110,8 +131,85 @@ Config-file example:
 ./rn -c ./rn.conf
 ```
 
-If `-c` is given without a file name, `rn` reads `/etc/rn.conf`.
+## Config file
 
+`rn` can be started either with command-line arguments or with an INI-style config file.
+
+Example config:
+
+```ini
+[server]
+port=53
+listen_mode=local
+; listen_mode=all
+
+; Explicit bind lists. Comma-separated values are accepted.
+; If bind_ipv4 or bind_ipv6 is set, it overrides the default bind list
+; for that protocol family only.
+; bind_ipv4=127.0.0.1
+; bind_ipv4=127.0.0.1, 10.0.0.5
+; bind_ipv6=::1
+; bind_ipv6=::1, 200:ffff::1
+
+[upstreams]
+; Comma-separated list of upstream DNS servers.
+; IPv6 with a port must use brackets.
+dns=1.1.1.1, 8.8.8.8, [2606:4700:4700::1111]:53
+
+[logging]
+file=/var/log/rn.log
+queries=false
+```
+
+### Listening behavior
+
+`listen_mode=local` means:
+
+- IPv4 binds to `127.0.0.1`
+- IPv6 binds to `::1`
+
+`listen_mode=all` means:
+
+- IPv4 binds to `0.0.0.0`
+- IPv6 binds to `::`
+
+If only one of `bind_ipv4` or `bind_ipv6` is specified, the other protocol family keeps its default bind list.
+
+Example:
+
+```ini
+[server]
+listen_mode=local
+bind_ipv6=::1, 200:ffff::1
+```
+
+This keeps IPv4 on `127.0.0.1` and binds IPv6 on both `::1` and `200:ffff::1`.
+
+For bind addresses, write plain IPs without brackets:
+
+```ini
+bind_ipv6=::1, 200:ffff::1
+```
+
+Brackets are only for host-and-port syntax, such as upstream entries:
+
+```ini
+dns=[2606:4700:4700::1111]:53
+```
+
+### Logging
+
+`rn` logs startup messages, bind failures, and other operational messages to stdout/stderr and also appends them to the configured log file.
+
+Config:
+
+```ini
+[logging]
+file=/var/log/rn.log
+queries=true
+```
+
+If `queries=true`, incoming queries and local/forwarded handling are logged as well.
 
 ## Manual tests
 
@@ -124,13 +222,20 @@ dig @127.0.0.1 -p 53 AAAA fiabbgadu-e.v6.alt
 Forwarded ordinary DNS query:
 
 ```sh
-dig @127.0.0.1 -p 53 A openai.com
+dig @127.0.0.1 -p 53 A gnu.org
+```
+
+Reverse IPv6 PTR query:
+
+```sh
+dig @127.0.0.1 -p 53 PTR 1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2.ip6.arpa
 ```
 
 If you want to test over IPv6 loopback:
 
 ```sh
 dig @::1 -p 53 AAAA fiabbgadu-e.v6.alt
+dig @::1 -p 53 A fsf.org 
 ```
 
 ## Automatic test script
@@ -164,132 +269,6 @@ The script checks these mappings:
 - `ceiqaaaaaairc-rce.v6.alt` -> `1111:0:0:1111::1111`
 - `ceiq-eiraaaaaaarce.v6.alt` -> `1111:0:0:0:1111::1111`
 
-## Config file
-
-`rn` can be started either with command-line arguments or with an INI-style config file.
-
-Command-line form:
-
-```sh
-./rn 53 1.1.1.1 8.8.8.8
-````
-
-Config-file form:
-
-```sh
-./rn -c
-./rn -c /etc/rn.conf
-./rn -c ./rn.conf
-```
-
-If `-c` is given without a file name, `rn` reads `/etc/rn.conf`.
-
-Example config:
-
-```ini
-[server]
-port=53
-
-; listen_mode can be:
-;   local  -> 127.0.0.1 + ::1 (default)
-;   all    -> 0.0.0.0 + ::
-; listen_mode=local
-; listen_mode=all
-
-; You can also override per-protocol:
-; bind_ipv4=127.0.0.1
-; bind_ipv6=::1
-
-[upstreams]
-dns1=1.1.1.1
-dns2=8.8.8.8
-dns3=[2606:4700:4700::1111]:53
-```
-
-## Listening behavior
-
-`rn` can listen either only on local interfaces or on all interfaces.
-
-### Default (local only)
-
-If no options are given, `rn` listens on:
-
-* `127.0.0.1` (IPv4)
-* `::1` (IPv6)
-
-Example:
-
-```text
-Listening on 127.0.0.1:53
-Listening on [::1]:53
-```
-
----
-
-### Listen on all interfaces
-
-Use:
-
-```sh
-./rn 53 1.1.1.1 --listen-all
-```
-
-or in config:
-
-```ini
-listen_mode=all
-```
-
-This binds:
-
-* `0.0.0.0`
-* `::`
-
----
-
-### Per-address control
-
-You can override bind addresses explicitly:
-
-```ini
-bind_ipv4=127.0.0.1
-bind_ipv6=201:8021:10ah:1337:be0c:dace:cafe:ada0
-```
-
-or from command line:
-
-```sh
-./rn 53 1.1.1.1 --bind4=0.0.0.0 --bind6=::
-```
-
----
-
-### Behavior when only one is specified
-
-If only one of `bind_ipv4` or `bind_ipv6` is set:
-
-* the other protocol keeps its default value
-
-Example:
-
-```ini
-bind_ipv6=201:8021:...
-```
-
-Result:
-
-* IPv6 -> configured address
-* IPv4 -> still `127.0.0.1`
-
----
-
-### Security note
-
-Listening on all interfaces (`--listen-all` or `0.0.0.0` / `::`) exposes the DNS service to the network.
-
-The default (`local`) is safer and recommended unless you explicitly want remote access.
-
-
 ## Recommended `/etc/resolv.conf` setup
 
 If you want to use `rn` as your system resolver, a typical `/etc/resolv.conf` is:
@@ -317,8 +296,8 @@ On many Linux systems `/etc/resolv.conf` is managed by system services such as s
 
 ## Notes
 
-* The test script uses `dig` and expects one IPv6 address in the answer.
-* `dig +short` prints canonical IPv6 text, so the expected values in the script are written in canonical compressed form where needed.
-* If you want to use this daemon from `/etc/resolv.conf`, it should usually run on port 53 and forward non-`.v6.alt` queries upstream.
-* The installed service files run `rn` with `-c /etc/rn.conf`.
-* Binding to port 53 usually requires root privileges.
+- The test script uses `dig` and expects one IPv6 address in the answer.
+- `dig +short` prints canonical IPv6 text, so the expected values in the script are written in canonical compressed form where needed.
+- If you want to use this daemon from `/etc/resolv.conf`, it should usually run on port 53 and forward non-`.v6.alt` queries upstream.
+- The installed service files run `rn` with `-c /etc/rn.conf`.
+- Binding to port 53 usually requires root privileges.

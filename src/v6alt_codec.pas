@@ -5,7 +5,7 @@ unit v6alt_codec;
 interface
 
 uses
-  SysUtils;
+  SysUtils, Classes (* for string list *);
 
 const
   IPV6_LEN = 16;
@@ -15,6 +15,8 @@ type
 
 function TryDecodeV6AltHost(const Qname: AnsiString; out IPv6: TIPv6Bytes): Boolean;
 function IPv6BytesToText(const IPv6: TIPv6Bytes): AnsiString;
+function IPv6BytesToV6AltHost(const IPv6: TIPv6Bytes): AnsiString;
+function TryParseIP6ArpaQName(const Qname: AnsiString; out IPv6: TIPv6Bytes): Boolean;
 
 implementation
 
@@ -190,6 +192,112 @@ begin
 
   if Result = '' then
     Result := '::';
+end;
+
+function IPv6BytesToV6AltHost(const IPv6: TIPv6Bytes): AnsiString;
+var
+  Raw: TBytes;
+  Encoded: AnsiString;
+  I, RunStart, RunLen, BestStart, BestLen: Integer;
+begin
+  SetLength(Raw, IPV6_LEN);
+  for I := 0 to IPV6_LEN - 1 do
+    Raw[I] := IPv6[I];
+
+  Encoded := LowerCase(EncodeBase32NoPadding(Raw));
+
+  BestStart := -1;
+  BestLen := 0;
+  RunStart := -1;
+  RunLen := 0;
+  for I := 2 to Length(Encoded) - 1 do
+  begin
+    if Encoded[I] = 'a' then
+    begin
+      if RunStart < 0 then
+      begin
+        RunStart := I;
+        RunLen := 1;
+      end
+      else
+        Inc(RunLen);
+    end
+    else
+    begin
+      if RunLen > BestLen then
+      begin
+        BestStart := RunStart;
+        BestLen := RunLen;
+      end;
+      RunStart := -1;
+      RunLen := 0;
+    end;
+  end;
+  if RunLen > BestLen then
+  begin
+    BestStart := RunStart;
+    BestLen := RunLen;
+  end;
+
+  if BestLen >= 2 then
+    Delete(Encoded, BestStart, BestLen);
+  if BestLen >= 2 then
+    Insert('-', Encoded, BestStart);
+
+  Result := Encoded + '.v6.alt';
+end;
+
+function HexNibbleValue(C: Char): Integer;
+begin
+  case UpCase(C) of
+    '0'..'9': Result := Ord(C) - Ord('0');
+    'A'..'F': Result := 10 + (Ord(UpCase(C)) - Ord('A'));
+  else
+    Result := -1;
+  end;
+end;
+
+function TryParseIP6ArpaQName(const Qname: AnsiString; out IPv6: TIPv6Bytes): Boolean;
+var
+  S: AnsiString;
+  Labels: TStringList;
+  I, ByteIndex: Integer;
+  HiNibble, LoNibble: Integer;
+begin
+  Result := False;
+  FillChar(IPv6, SizeOf(IPv6), 0);
+  S := LowerCase(Trim(Qname));
+  if not EndsTextInsensitive('.ip6.arpa', S) then
+    Exit;
+
+  Delete(S, Length(S) - Length('.ip6.arpa') + 1, Length('.ip6.arpa'));
+  if (S <> '') and (S[Length(S)] = '.') then
+    Delete(S, Length(S), 1);
+
+  Labels := TStringList.Create;
+  try
+    Labels.StrictDelimiter := True;
+    Labels.Delimiter := '.';
+    Labels.DelimitedText := S;
+    if Labels.Count <> 32 then
+      Exit;
+
+    for I := 0 to 15 do
+    begin
+      if (Length(Labels[I * 2]) <> 1) or (Length(Labels[I * 2 + 1]) <> 1) then
+        Exit;
+      LoNibble := HexNibbleValue(Labels[I * 2][1]);
+      HiNibble := HexNibbleValue(Labels[I * 2 + 1][1]);
+      if (LoNibble < 0) or (HiNibble < 0) then
+        Exit;
+      ByteIndex := 15 - I;
+      IPv6[ByteIndex] := Byte((HiNibble shl 4) or LoNibble);
+    end;
+
+    Result := True;
+  finally
+    Labels.Free;
+  end;
 end;
 
 end.
