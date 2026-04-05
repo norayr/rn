@@ -1,0 +1,26 @@
+#!/bin/sh
+
+# PROVIDE: rn
+# REQUIRE: NETWORKING
+# KEYWORD: shutdown
+
+. /etc/rc.subr
+
+name="rn"
+rcvar="rn_enable"
+
+: ${rn_enable:="NO"}
+: ${rn_config:="/usr/local/etc/rn.conf"}
+: ${rn_user:="root"}
+: ${rn_group:="wheel"}
+: ${rn_pidfile:="/var/run/${name}.pid"}
+: ${rn_command:="/usr/local/sbin/rn"}
+
+command="${rn_command}"
+pidfile="${rn_pidfile}"
+command_args="-c ${rn_config} >> /var/log/rn.log 2>&1 & echo \$! > ${pidfile}"
+
+load_rc_config $name
+
+run_rc_command "$1"
+

@@ -39,31 +39,21 @@ By default this installs:
 
 - `rn` to `/usr/sbin/rn`
 - config to `/etc/rn.conf`
-- systemd unit to `/etc/systemd/system/rn.service`
-- OpenRC script to `/etc/init.d/rn`
+- documentation to `/usr/share/doc/rn`
 
-## Service files
+### Init system integration
 
-### systemd
+Service files are installed separately.
 
-The distribution includes `rn.service`.
+#### OpenRC
 
-Enable and start it with:
-
-```sh
-sudo systemctl daemon-reload
-sudo systemctl enable --now rn.service
-```
-
-Check status:
+The distribution includes `rn.openrc` and installs with `make install-openrc`.
 
 ```sh
-systemctl status rn.service
+sudo make install-openrc
 ```
 
-### OpenRC
-
-The distribution includes `rn.openrc` and installs with `make install`.
+You can also install it manually, without makefile:
 
 ```sh
 sudo install -m 755 rn.openrc /etc/init.d/rn
@@ -81,6 +71,22 @@ Check status:
 ```sh
 rc-service rn status
 ```
+
+#### systemd
+
+```sh
+sudo make install-systemd
+```
+
+#### FreeBSD
+
+```sh
+sudo make install-freebsd
+```
+
+This installs the rc script to `/usr/local/etc/rc.d/rn`.
+
+````
 
 ## Install on Gentoo
 
@@ -122,6 +128,8 @@ Example with explicit bind addresses:
 ```sh
 ./rn 53 1.1.1.1 --bind4=127.0.0.1 --bind6=::1 --bind6=200:ffff::1
 ```
+
+Note: in config files, multiple addresses are comma-separated.
 
 With `-c`, if no file name is given, `rn` reads `/etc/rn.conf`:
 
@@ -216,7 +224,7 @@ If `queries=true`, incoming queries and local/forwarded handling are logged as w
 Local `v6.alt` query:
 
 ```sh
-dig @127.0.0.1 -p 53 AAAA fiabbgadu-e.v6.alt
+dig @127.0.0.1 -p 53 AAAA eaaq3o-e.v6.alt
 ```
 
 Forwarded ordinary DNS query:
@@ -234,7 +242,7 @@ dig @127.0.0.1 -p 53 PTR 1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.8.b.d.0.1.0.0.2
 If you want to test over IPv6 loopback:
 
 ```sh
-dig @::1 -p 53 AAAA fiabbgadu-e.v6.alt
+dig @::1 -p 53 AAAA eaaq3o-e.v6.alt
 dig @::1 -p 53 A fsf.org 
 ```
 
