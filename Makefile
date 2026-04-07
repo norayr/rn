@@ -41,7 +41,7 @@ CONFIG_FILE = $(CONF_DIR)/rn.conf
 SYSTEMD_FILE = $(CONF_DIR)/rn.service
 OPENRC_FILE = $(CONF_DIR)/rn.openrc
 FREEBSD_RC_FILE = $(CONF_DIR)/rn.freebsd
-README_FILE = README.md
+README_FILE = readme.md
 
 all: $(PROGRAM) $(TOOLS)
 
@@ -64,7 +64,7 @@ install-base: $(PROGRAM) $(TOOLS)
 	install -m 644 $(CONFIG_FILE) $(DESTDIR)$(ETCDIR)/rn.conf
 
 	if [ -f $(README_FILE) ]; then \
-		install -m 644 $(README_FILE) $(DESTDIR)$(DOCDIR)/README.md; \
+		install -m 644 $(README_FILE) $(DESTDIR)$(DOCDIR)/$(README_FILE); \
 	fi
 
 install-openrc:
@@ -88,7 +88,7 @@ install-freebsd:
 	install -m 755 $(FREEBSD_RC_FILE) $(DESTDIR)$(FREEBSD_RCDIR)/rn
 
 	if [ -f $(README_FILE) ]; then \
-		install -m 644 $(README_FILE) $(DESTDIR)$(FREEBSD_DOCDIR)/README.md; \
+		install -m 644 $(README_FILE) $(DESTDIR)$(FREEBSD_DOCDIR)/$(README_FILE); \
 	fi
 
 install-all-init: install-openrc install-systemd install-freebsd
@@ -97,7 +97,7 @@ uninstall:
 	rm -f $(DESTDIR)$(SBINDIR)/$(PROGRAM)
 	rm -f $(DESTDIR)$(BINDIR)/v6alt
 	rm -f $(DESTDIR)$(ETCDIR)/rn.conf
-	rm -f $(DESTDIR)$(DOCDIR)/README.md
+	rm -f $(DESTDIR)$(DOCDIR)/$(README_FILE)
 
 uninstall-openrc:
 	rm -f $(DESTDIR)$(OPENRCDIR)/rn
@@ -110,7 +110,7 @@ uninstall-freebsd:
 	rm -f $(DESTDIR)$(FREEBSD_BINDIR)/v6alt
 	rm -f $(DESTDIR)$(FREEBSD_ETCDIR)/rn.conf
 	rm -f $(DESTDIR)$(FREEBSD_RCDIR)/rn
-	rm -f $(DESTDIR)$(FREEBSD_DOCDIR)/README.md
+	rm -f $(DESTDIR)$(FREEBSD_DOCDIR)/$(README_FILE)
 
 clean:
 	rm -f $(PROGRAM) v6alt *.o *.ppu
