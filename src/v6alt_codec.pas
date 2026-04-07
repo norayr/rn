@@ -172,7 +172,7 @@ begin
       if First then
         Result := '::'
       else
-        Result := Result + ':';
+        Result := Result + '::';
       Inc(I, BestLen);
       First := False;
       if I > 7 then

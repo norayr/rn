@@ -79,6 +79,7 @@ run_test '72-e.v6.alt'                        'fe80::1'
 run_test '77777777777777777777777774.v6.alt'  'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff'
 run_test 'ceiqaaaaaairc-rce.v6.alt'           '1111:0:0:1111::1111'
 run_test 'ceiq-eiraaaaaaarce.v6.alt'          '1111::1111:0:0:1111'
+run_test 'b-7baaaaaaaaaaaa.v6.alt'            '800:0:0:f:8400::'
 
 echo
 echo "Testing reverse conversion with v6alt"
@@ -93,6 +94,7 @@ run_reverse_test 'fe80::1'                             '72-e.v6.alt'
 run_reverse_test 'ffff:ffff:ffff:ffff:ffff:ffff:ffff:ffff' '77777777777777777777777774.v6.alt'
 run_reverse_test '1111:0:0:1111::1111'                 'ceiqaaaaaairc-rce.v6.alt'
 run_reverse_test '1111::1111:0:0:1111'                 'ceiq-eiraaaaaaarce.v6.alt'
+run_reverse_test '800:0:0:f:8400::'          'b-7baaaaaaaaaaaa.v6.alt'
 
 echo
 echo "Testing DNS -> IP -> v6.alt roundtrip"
@@ -107,6 +109,7 @@ run_roundtrip_test '72-e.v6.alt'
 run_roundtrip_test '77777777777777777777777774.v6.alt'
 run_roundtrip_test 'ceiqaaaaaairc-rce.v6.alt'
 run_roundtrip_test 'ceiq-eiraaaaaaarce.v6.alt'
+run_roundtrip_test 'b-7baaaaaaaaaaaa.v6.alt'
 
 echo
 printf 'Summary: %d passed, %d failed\n' "$pass" "$fail"
