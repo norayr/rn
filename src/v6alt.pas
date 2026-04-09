@@ -36,11 +36,31 @@ var
 begin
   Result := False;
   FillChar(IPv6, SizeOf(IPv6), 0);
+
+  { quick sanity: must look like IPv6 }
+  if Pos(':', S) = 0 then
+    Exit;
+
   try
     FillChar(A6, SizeOf(A6), 0);
     A6.sin6_addr := StrToHostAddr6(S);
+
+    { extra guard: reject all-zero unless input actually "::" }
+    if (S <> '::') then
+    begin
+      Result := False;
+      for I := 0 to 15 do
+        if A6.sin6_addr.s6_addr[I] <> 0 then
+        begin
+          Result := True;
+          Break;
+        end;
+      if not Result then Exit;
+    end;
+
     for I := 0 to 15 do
       IPv6[I] := A6.sin6_addr.s6_addr[I];
+
     Result := True;
   except
     Result := False;
