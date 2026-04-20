@@ -1,4 +1,4 @@
-# rn
+# rn (rn, ren or reto nomo)
 
 A small DNS server for `*.v6.alt` names.
 
@@ -243,7 +243,7 @@ If you want to test over IPv6 loopback:
 
 ```sh
 dig @::1 -p 53 AAAA eaaq3o-e.v6.alt
-dig @::1 -p 53 A fsf.org 
+dig @::1 -p 53 A fsf.org
 ```
 
 ## Automatic test script
